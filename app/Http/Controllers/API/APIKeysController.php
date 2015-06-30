@@ -13,8 +13,10 @@ use CC\Http\Controllers\Controller;
 class APIKeysController extends Controller
 {
     /**
-     * Display a listing of the resources.
-     * @return Response
+     * Returns a list of api keys.
+     * @param Authenticatable $user
+     * @param Request $request
+     * @return array
      * @todo Add an admin mode, add a maximum limit to the config.
      */
     public function index(Authenticatable $user, Request $request)
@@ -108,7 +110,8 @@ class APIKeysController extends Controller
             ],
             'prev' => [
                 'href' => route(
-                    $routeName, array_merge($usedRouteParams, ['skip' => $skip - $limit < 0 ? 0 : $skip - $limit])
+                    $routeName,
+                    array_merge($usedRouteParams, ['skip' => $skip - $limit < 0 ? 0 : $skip - $limit])
                 )
             ],
             'self' => ['href' => route($routeName, $usedRouteParams)],
@@ -140,12 +143,21 @@ class APIKeysController extends Controller
      * Store a newly created resource in storage.
      * @param Request $request The request.
      * @return Response
+     * @todo Add Admin mode.
      */
     public function store(Authenticatable $user, Request $request)
     {
+        if (!$userId = (int)$request->userId) {
+            abort(400);
+        } // if
+
+        if ($user->id !== $userId) { // TODO Add admin mode.
+            abort(403);
+        } // if
+
         $key = APIKey::firstOrNew([
             'desc' => $request->get('desc') ?: date('YmdHis'),
-            'user_id' => $user->id
+            'user_id' => $userId
         ]);
 
         if ($key->id) {

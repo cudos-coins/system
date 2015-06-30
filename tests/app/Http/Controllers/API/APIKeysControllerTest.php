@@ -19,6 +19,17 @@ use TestCase;
  */
 class APIKeysControllerTest extends TestCase
 {
+    /**
+     * Checks the hal structure of the response.
+     * @param stdClass $result The response result.
+     * @param string $routeName The route name.
+     * @param int $skip How many articles are skipped?
+     * @param int $take How many articles are taken?
+     * @param bool $withRows Should there be a row?
+     * @param array $urlParams The used url parameters.
+     * @param callable $rowCallback An callback to check the single rows.
+     * @return void
+     */
     protected function checkHAL(
         stdClass $result,
         $routeName,
@@ -276,6 +287,52 @@ class APIKeysControllerTest extends TestCase
     } // function
 
     /**
+     * Checks the  store call without an user.
+     * @return void
+     */
+    public function testStoreErrorNoToken()
+    {
+        $response = $this->call('POST', '/api/api_keys');
+
+        $this->assertEquals(401, $response->getStatusCode());
+    } // function
+
+    /**
+     * Checks the  store call without an user.
+     * @return void
+     */
+    public function testStoreErrorNoUser()
+    {
+        $response = $this->callProtected('POST', '/api/api_keys');
+
+        $this->assertEquals(400, $response->getStatusCode());
+    } // function
+
+    /**
+     * Checks the  store call without an user.
+     * @return void
+     */
+    public function testStoreErrorWrongToken()
+    {
+        $server['HTTP_X-' . str_replace(['/', '\\'], '', $this->getAppNamespace()) . '-ACCESS-TOKEN'] = uniqid();
+
+        $response = $this->call('POST', '/api/api_keys', [], [], [], $server);
+
+        $this->assertEquals(403, $response->getStatusCode());
+    } // function
+
+    /**
+     * Checks the store call with a wrong user.
+     * @return void
+     */
+    public function testStoreErrorWrongUser()
+    {
+        $response = $this->callProtected('POST', '/api/api_keys', ['userId' => 5]);
+
+        $this->assertEquals(403, $response->getStatusCode());
+    } // function
+
+    /**
      * Checks if the correct header is sent without a key.
      * @return void
      */
@@ -292,7 +349,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreSuccessNoDesc()
     {
-        $response = $this->callProtected('POST', '/api/api_keys');
+        $response = $this->callProtected('POST', '/api/api_keys', ['userId' => 1]);
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertInstanceOf('stdClass', $responseContent = json_decode($response->getContent()));
@@ -312,7 +369,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreSuccessWithDesc()
     {
-        $response = $this->callProtected('POST', '/api/api_keys', ['desc' => $desc = uniqid()]);
+        $response = $this->callProtected('POST', '/api/api_keys', ['desc' => $desc = uniqid(), 'userId' => 1]);
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertInstanceOf('stdClass', $responseContent = json_decode($response->getContent()));
@@ -336,7 +393,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreConflict($desc)
     {
-        $response = $this->callProtected('POST', '/api/api_keys', ['desc' => $desc]);
+        $response = $this->callProtected('POST', '/api/api_keys', ['desc' => $desc, 'userId' => 1]);
 
         $this->assertEquals(409, $response->getStatusCode());
     } // function
