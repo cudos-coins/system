@@ -136,13 +136,15 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
+	    b3nl\MWBModel\ServiceProvider::class,
 
         /*
          * Application Service Providers...
          */
-        App\Providers\AppServiceProvider::class,
-        App\Providers\EventServiceProvider::class,
-        App\Providers\RouteServiceProvider::class,
+        CC\Providers\AppServiceProvider::class,
+        CC\Providers\EventServiceProvider::class,
+        CC\Providers\RouteServiceProvider::class,
+	    SimpleSoftwareIO\QrCode\QrCodeServiceProvider::class
 
     ],
 

@@ -12,7 +12,7 @@ keys:
 folders: []
 
 sites:
-    - map: homestead.app
+    - map: dev.universal-coins.org
       to: /vagrant/public
 
 databases:
