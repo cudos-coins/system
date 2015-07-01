@@ -2,6 +2,7 @@
 
 namespace CC\Http\Controllers\API;
 
+use CC\APIKey;
 use Closure;
 use Illuminate\Console\AppNamespaceDetectorTrait;
 use Illuminate\Support\Facades\Crypt;
@@ -143,6 +144,23 @@ class APIKeysControllerTest extends TestCase
         $response = $this->callProtected('DELETE', '/api/api_keys/' . uniqid());
 
         $this->assertEquals(404, $response->getStatusCode());
+    } // function
+
+    /**
+     * Checks if an 403 is returned, if the key is from another user.
+     * @return void
+     */
+    public function testDestroyWrongUser()
+    {
+        $this->seed('UserTableSeeder');
+        $this->seed('APIKeySeeder');
+
+        $key = APIKey::findOrNew(1);
+        $key->user_id = 2;
+        $key->save();
+
+        $response = $this->callProtected('DELETE', '/api/api_keys/1');
+        $this->assertEquals(403, $response->getStatusCode());
     } // function
 
     /**

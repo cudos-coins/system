@@ -174,11 +174,17 @@ class APIKeysController extends Controller
 
     /**
      * Remove the specified resource from storage.
+     * @param Authenticatable $user
      * @param APIKey $key
      * @return Response
+     * @todo Check user rights!
      */
-    public function destroy(APIKey $key)
+    public function destroy(Authenticatable $user, APIKey $key)
     {
+        if ($key->user_id !== $user->id) {
+            abort(403);
+        } // if
+
         $key->delete();
 
         return $key;
