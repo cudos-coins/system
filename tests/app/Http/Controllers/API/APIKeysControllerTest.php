@@ -59,7 +59,11 @@ class APIKeysControllerTest extends TestCase
             'Wrong first link.'
         );
 
-        $this->assertSame($result->_links->self->href, route($routeName, $urlParams), 'Wrong self link.');
+        $this->assertSame(
+            $result->_links->self->href,
+            route($routeName, $urlParams),
+            'Wrong self link.'
+        );
 
         if (!$withRows) {
             $this->assertSame(
@@ -111,12 +115,40 @@ class APIKeysControllerTest extends TestCase
     } // function
 
     /**
+     * Returns the typical resource url.
+     * @return string
+     */
+    protected function getResourceURL()
+    {
+        return '/api/api_keys/';
+    } // function
+
+    /**
+     * Returns the route name.
+     * @return string
+     */
+    protected function getRouteName()
+    {
+        return 'api.api_keys.index';
+    } // functio
+    
+    /**
+     * Returns a valid user filter.
+     * @param bool $correctData Should the correct data be returned?
+     * @return array
+     */
+    protected function getUserFilter($correctData = true)
+    {
+        return ['filter' => ['user_id' => $correctData ? 1 : uniqid()]];
+    } // function
+
+    /**
      * Checks if the 404 is returned if the row is missing.
      * @return void
      */
     public function testDestroyMissing()
     {
-        $response = $this->callProtected('DELETE', '/api/api_keys/' . uniqid());
+        $response = $this->callProtected('DELETE', $this->getResourceUrl() . '' . uniqid());
 
         $this->assertEquals(404, $response->getStatusCode());
     } // function
@@ -130,7 +162,7 @@ class APIKeysControllerTest extends TestCase
         $this->seed('UserTableSeeder');
         $this->seed('APIKeySeeder');
 
-        $response = $this->callProtected('DELETE', '/api/api_keys/1');
+        $response = $this->callProtected('DELETE', $this->getResourceUrl() . '1');
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertInstanceOf('stdClass', $responseContent = json_decode($response->getContent()));
@@ -141,7 +173,7 @@ class APIKeysControllerTest extends TestCase
         $this->assertSame(1, $responseContent->id);
         $this->assertSame('desc 1', $responseContent->desc);
 
-        $response = $this->callProtected('DELETE', '/api/api_keys/' . uniqid());
+        $response = $this->callProtected('DELETE', $this->getResourceUrl() . '' . uniqid());
 
         $this->assertEquals(404, $response->getStatusCode());
     } // function
@@ -169,7 +201,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testIndexErrorNoUserFilter()
     {
-        $response = $this->callProtected('GET', '/api/api_keys');
+        $response = $this->callProtected('GET', $this->getResourceUrl());
 
         $this->assertEquals(400, $response->getStatusCode());
     } // function
@@ -180,7 +212,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testIndexErrorWrongUserFilter()
     {
-        $response = $this->callProtected('GET', '/api/api_keys', ['filter' => ['user_id' => uniqid()]]);
+        $response = $this->callProtected('GET', $this->getResourceUrl(), $this->getUserFilter(false));
 
         $this->assertEquals(403, $response->getStatusCode());
     } // function
@@ -195,13 +227,13 @@ class APIKeysControllerTest extends TestCase
         $this->seed('APIKeySeeder');
 
         $test = $this;
-        $response = $this->callProtected('GET', '/api/api_keys', ['filter' => ['user_id' => 1]]);
+        $response = $this->callProtected('GET', $this->getResourceUrl(), $this->getUserFilter(true));
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertInstanceOf('stdClass', $responseContent = json_decode($response->getContent()));
 
         $this->checkHAL(
-            $responseContent, 'api.api_keys.index', 0, 30, true, ['filter' => ['user_id' => 1]],
+            $responseContent,$this->getRouteName(), 0, 30, true, $this->getUserFilter(true),
             function ($index, stdClass $row) use ($test) {
                 $test->assertObjectHasAttribute('id', $row, 'Row misses id.');
                 $test->assertObjectHasAttribute('user_id', $row, 'Row misses user_id.');
@@ -226,7 +258,7 @@ class APIKeysControllerTest extends TestCase
     {
         DB::table('api_keys')->truncate();
 
-        $response = $this->callProtected('GET', '/api/api_keys', ['filter' => ['user_id' => 1]]);
+        $response = $this->callProtected('GET', $this->getResourceUrl(), $this->getUserFilter(true));
 
         $this->assertEquals(404, $response->getStatusCode());
     } // function
@@ -242,8 +274,8 @@ class APIKeysControllerTest extends TestCase
         $test = $this;
         $response = $this->callProtected(
             'GET',
-            '/api/api_keys',
-            ['filter' => ['user_id' => 1], 'limit' => 2, 'skip' => 2, 'sorting' => ['id' => 'asc']]
+            $this->getResourceUrl(),
+            array_merge($this->getUserFilter(true), ['limit' => 2, 'skip' => 2, 'sorting' => ['id' => 'asc']])
         );
 
         $this->assertEquals(200, $response->getStatusCode());
@@ -251,11 +283,11 @@ class APIKeysControllerTest extends TestCase
 
         $this->checkHAL(
             $responseContent,
-            'api.api_keys.index',
+           $this->getRouteName(),
             2,
             2,
             true,
-            ['filter' => ['user_id' => 1], 'limit' => 2, 'skip' => 2, 'sorting' => ['id' => 'asc']],
+            array_merge($this->getUserFilter(true), ['limit' => 2, 'skip' => 2, 'sorting' => ['id' => 'asc']]),
             function ($index, stdClass $row) use ($test) {
                 $test->assertObjectHasAttribute('id', $row, 'Row misses id.');
                 $test->assertObjectHasAttribute('user_id', $row, 'Row misses user_id.');
@@ -278,7 +310,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testShowMissing()
     {
-        $response = $this->callProtected('GET', '/api/api_keys/' . uniqid());
+        $response = $this->callProtected('GET', $this->getResourceUrl() . '' . uniqid());
 
         $this->assertEquals(404, $response->getStatusCode());
     } // function
@@ -292,7 +324,7 @@ class APIKeysControllerTest extends TestCase
         $this->seed('UserTableSeeder');
         $this->seed('APIKeySeeder');
 
-        $response = $this->callProtected('GET', '/api/api_keys/1');
+        $response = $this->callProtected('GET', $this->getResourceUrl() . '1');
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertInstanceOf('stdClass', $responseContent = json_decode($response->getContent()));
@@ -310,7 +342,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreErrorNoToken()
     {
-        $response = $this->call('POST', '/api/api_keys');
+        $response = $this->call('POST', $this->getResourceUrl());
 
         $this->assertEquals(401, $response->getStatusCode());
     } // function
@@ -321,7 +353,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreErrorNoUser()
     {
-        $response = $this->callProtected('POST', '/api/api_keys');
+        $response = $this->callProtected('POST', $this->getResourceUrl());
 
         $this->assertEquals(400, $response->getStatusCode());
     } // function
@@ -334,7 +366,7 @@ class APIKeysControllerTest extends TestCase
     {
         $server['HTTP_X-' . str_replace(['/', '\\'], '', $this->getAppNamespace()) . '-ACCESS-TOKEN'] = uniqid();
 
-        $response = $this->call('POST', '/api/api_keys', [], [], [], $server);
+        $response = $this->call('POST', $this->getResourceUrl(), [], [], [], $server);
 
         $this->assertEquals(403, $response->getStatusCode());
     } // function
@@ -345,7 +377,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreErrorWrongUser()
     {
-        $response = $this->callProtected('POST', '/api/api_keys', ['userId' => 5]);
+        $response = $this->callProtected('POST', $this->getResourceUrl(), ['userId' => uniqid()]);
 
         $this->assertEquals(403, $response->getStatusCode());
     } // function
@@ -356,7 +388,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreNoKey()
     {
-        $response = $this->call('POST', '/api/api_keys');
+        $response = $this->call('POST', $this->getResourceUrl());
 
         $this->assertEquals(401, $response->getStatusCode());
     } // function
@@ -367,7 +399,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreSuccessNoDesc()
     {
-        $response = $this->callProtected('POST', '/api/api_keys', ['userId' => 1]);
+        $response = $this->callProtected('POST', $this->getResourceUrl(), ['userId' => 1]);
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertInstanceOf('stdClass', $responseContent = json_decode($response->getContent()));
@@ -387,7 +419,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreSuccessWithDesc()
     {
-        $response = $this->callProtected('POST', '/api/api_keys', ['desc' => $desc = uniqid(), 'userId' => 1]);
+        $response = $this->callProtected('POST', $this->getResourceUrl(), ['desc' => $desc = uniqid(), 'userId' => 1]);
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertInstanceOf('stdClass', $responseContent = json_decode($response->getContent()));
@@ -411,7 +443,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreConflict($desc)
     {
-        $response = $this->callProtected('POST', '/api/api_keys', ['desc' => $desc, 'userId' => 1]);
+        $response = $this->callProtected('POST', $this->getResourceUrl(), ['desc' => $desc, 'userId' => 1]);
 
         $this->assertEquals(409, $response->getStatusCode());
     } // function
@@ -422,7 +454,7 @@ class APIKeysControllerTest extends TestCase
      */
     public function testUpdateMissing()
     {
-        $response = $this->call('PUT', '/api/api_keys');
+        $response = $this->call('PUT', $this->getResourceUrl());
 
         $this->assertEquals(405, $response->getStatusCode());
     } // function

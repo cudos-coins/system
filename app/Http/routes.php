@@ -40,4 +40,8 @@ Route::group(['middleware' => 'access.token', 'namespace' => 'API', 'prefix' => 
 
     Route::delete('users/{users}/like', ['as' => 'api.users.like.destroy', 'uses' => 'Users\\LikeController@destroy']);
     Route::resource('users.like', 'Users\\LikeController', ['only' => ['store']]);
+
+    Route::group(['middleware' => 'my_alias.filter_provider', 'namespace' => 'My', 'prefix' => 'my'], function () {
+        Route::resource('api_keys', 'APIKeysController', ['only' => ['destroy', 'index', 'store', 'show']]);
+    });
 });

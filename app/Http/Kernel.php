@@ -27,5 +27,6 @@ class Kernel extends HttpKernel
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'guest' => \CC\Http\Middleware\RedirectIfAuthenticated::class,
         'access.token' => \CC\Http\Middleware\CheckAccessToken::class,
+        'my_alias.filter_provider' => \CC\Http\Middleware\API\My\AliasFilterProvider::class
     ];
 }

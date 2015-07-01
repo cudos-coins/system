@@ -28,5 +28,11 @@ class APIKeySeeder extends Seeder
                 'user_id' => 1
             ]);
         } // for
+
+        APIKey::create([
+            'desc' => 'desc ' . ++$round,
+            'hash' => Hash::make(Str::random(32), ['rounds' => 10]),
+            'user_id' => 2
+        ]);
     } // function
 }

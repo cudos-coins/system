@@ -2,70 +2,48 @@
 
 namespace CC\Http\Controllers\API;
 
+use CC\APIKey;
+use CC\Http\Controllers\Controller;
+use CC\Http\Controllers\API\HAL\PaginationTrait;
+use CC\Http\Requests\API\PaginatedQueryRequest;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
-use CC\APIKey;
-use CC\Http\Controllers\Controller;
 
+/**
+ * Handles the api keys.
+ * @author b3nl <code@b3nl.de>
+ * @category controllers
+ * @package CC\Http
+ * @subpackage API
+ * @version $id$
+ */
 class APIKeysController extends Controller
 {
+    use PaginationTrait;
+
     /**
      * Returns a list of api keys.
-     * @param Authenticatable $user
-     * @param Request $request
+     * @param PaginatedQueryRequest $request
      * @return array
      * @todo Add an admin mode, add a maximum limit to the config.
      */
-    public function index(Authenticatable $user, Request $request)
+    public function index(PaginatedQueryRequest $request)
     {
         $key = new APIKey();
 
-        $filter = $request->get('filter', []);
+        $requestData = $request->getSanitizedRequestData($key);
 
-        if (!@$filter['user_id']) { // TODO Admin mode.
-            abort(400);
-        } // if
+        $query = $key
+            ->where($filter = $requestData['filter'])
+            ->skip($skip = $requestData['skip'])
+            ->take($limit = $requestData['limit']);
 
-        if ((int)$filter['user_id'] !== $user->id) {
-            abort(403);
-        } // if
-
-        if (!$sorting = $request->get('sorting', [])) {
-            $sorting['id'] = 'desc';
-        } // if
-
-        $hidden = $key->getHidden();
-        $fillable = $key->getFillable();
-
-        // removed the hidden fields.
-        $filter = array_diff_key($filter, array_flip($hidden));
-
-        // removed the unknown fields.
-        $filter = array_intersect_key($filter, array_flip($fillable));
-        $limit = (int)$request['limit'] && $request['limit'] <= 30 * 10 ? $request['limit'] : 30;
-        $skip = (int)$request->get('skip', 0);
-
-        if ($request->has('filter')) {
-            $request['filter'] = $filter;
-        } // if
-
-        if ($request->has('limit')) {
-            $request['limit'] = $limit;
-        } // if
-
-        if ($request->has('skip') && $skip) {
-            $request['skip'] = $skip;
-        } // if
-
-        $query = $key->where($filter)->skip($skip)->take($limit);
-
-        foreach ($sorting as $field => $direction) {
-            if (in_array($field, $fillable) && !in_array($field, $hidden)) {
-                $query->orderBy($field, $direction === 'desc' ? $direction : 'asc');
-            } // if
+        foreach ($requestData['sorting'] as $field => $direction) {
+            $query->orderBy($field, $direction);
         } // foreach
 
         $result = $query->get();
@@ -76,57 +54,15 @@ class APIKeysController extends Controller
             abort(404);
         } // if
 
-        $routeName = Route::currentRouteName();
-        $possibleRouteParams = ['filter', 'limit', 'sorting', 'skip'];
-        $usedRouteParams = [];
-
-        foreach ($possibleRouteParams as $param) {
-            if ($request->has($param)) {
-                $usedRouteParams[$param] = $request->get($param);
-            } // if
-        } // foreach
-
-        ksort($usedRouteParams);
-
-        $links = [
-            'first' => ['href' => route($routeName, array_merge($usedRouteParams, ['skip' => 0]))],
-            'last' => [
-                'href' => route(
-                    $routeName,
-                    array_merge($usedRouteParams, [
-                        'skip' => $limit > $total
-                            ? 0
-                            : ($total % $limit
-                                ? $total - ($total % $limit)
-                                : $total - $limit)
-                    ])
-                )
+        return $this->addHALToResponse(
+            $request,
+            [
+                'data' => $result,
+                'count' => $count,
+                'total' => $total
             ],
-            'next' => [
-                'href' => route(
-                    $routeName,
-                    array_merge($usedRouteParams, ['skip' => $skip + $limit >= $total ? $skip : $skip + $limit])
-                )
-            ],
-            'prev' => [
-                'href' => route(
-                    $routeName,
-                    array_merge($usedRouteParams, ['skip' => $skip - $limit < 0 ? 0 : $skip - $limit])
-                )
-            ],
-            'self' => ['href' => route($routeName, $usedRouteParams)],
-        ];
-
-        if (!$count || $count === $total) {
-            unset($links['next'], $links['prev']);
-        } // if
-
-        return [
-            '_embedded' => $result,
-            '_links' => $links,
-            'count' => $count,
-            'total' => $total
-        ];
+            $requestData
+        );
     } // function
 
     /**
@@ -166,6 +102,8 @@ class APIKeysController extends Controller
 
         $key->hash = Hash::make($hashSource = Str::random(32), ['rounds' => 10]);
         $key->save();
+
+        Event::fire('test');
 
         $key->key = $hashSource;
 
