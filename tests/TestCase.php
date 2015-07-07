@@ -27,6 +27,7 @@ class TestCase extends Illuminate\Foundation\Testing\TestCase
      * @param  array   $files
      * @param  array   $server
      * @param  string  $content
+     * @param  array   $login The new login array, if you want to change the default user.
      * @return \Illuminate\Http\Response
      */
     protected function callProtected(
@@ -36,10 +37,11 @@ class TestCase extends Illuminate\Foundation\Testing\TestCase
         $cookies = [],
         $files = [],
         $server = [],
-        $content = null
+        $content = null,
+        array $login = []
     ) {
         $server['HTTP_X-' . str_replace(['/', '\\'], '', $this->getAppNamespace()) . '-ACCESS-TOKEN'] =
-            $this->getAccessKey();
+            $this->getAccessKey($login);
 
         return $this->call($method, $uri, $parameters, $cookies, $files, $server, $content);
     } // function
@@ -60,14 +62,19 @@ class TestCase extends Illuminate\Foundation\Testing\TestCase
 
     /**
      * Returns an access key.
+     * @param  array $login The new login array, if you want to change the default user.
      * @return mixed
      */
-    protected function getAccessKey()
+    protected function getAccessKey(array $login = [])
     {
-        if (!$this->access_key) {
+        if (!$this->access_key || $login) {
+            if (!$login) {
+                $login = ['email' => 'foo@bar.com', 'password' => 'password'];
+            } // if
+
             $this->seed('UserTableSeeder');
 
-            $response = $this->call('POST', '/api/access_token', ['email' => 'foo@bar.com', 'password' => 'password']);
+            $response = $this->call('POST', '/api/access_token', $login);
             $responseContent = $response->getOriginalContent();
 
             $this->access_key = $responseContent['token']['value'];

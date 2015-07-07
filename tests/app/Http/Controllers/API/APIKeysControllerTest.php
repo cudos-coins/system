@@ -139,7 +139,7 @@ class APIKeysControllerTest extends TestCase
      */
     protected function getUserFilter($correctData = true)
     {
-        return ['filter' => ['user_id' => $correctData ? 1 : uniqid()]];
+        return ['filter' => ['user_id' => $correctData ? 1 : 234234234]];
     } // function
 
     /**
@@ -159,7 +159,6 @@ class APIKeysControllerTest extends TestCase
      */
     public function testDestroySuccess()
     {
-        $this->seed('UserTableSeeder');
         $this->seed('APIKeySeeder');
 
         $response = $this->callProtected('DELETE', $this->getResourceUrl() . '1');
@@ -184,7 +183,28 @@ class APIKeysControllerTest extends TestCase
      */
     public function testDestroyWrongUser()
     {
-        $this->seed('UserTableSeeder');
+        $this->seed('APIKeySeeder');
+
+        $response = $this->callProtected(
+            'DELETE',
+            $this->getResourceUrl() . '1',
+            [],
+            [],
+            [],
+            [],
+            [],
+            ['email' => 'test@example.com', 'password' => 'password']
+        );
+
+        $this->assertEquals(403, $response->getStatusCode());
+    } // function
+
+    /**
+     * Checks if an 200 is returned, if the key is from another user but the user is admin.
+     * @return void
+     */
+    public function testDestroyWrongUserButAdmin()
+    {
         $this->seed('APIKeySeeder');
 
         $key = APIKey::findOrNew(1);
@@ -192,7 +212,7 @@ class APIKeysControllerTest extends TestCase
         $key->save();
 
         $response = $this->callProtected('DELETE', '/api/api_keys/1');
-        $this->assertEquals(403, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
     } // function
 
     /**
@@ -201,7 +221,16 @@ class APIKeysControllerTest extends TestCase
      */
     public function testIndexErrorNoUserFilter()
     {
-        $response = $this->callProtected('GET', $this->getResourceUrl());
+        $response = $this->callProtected(
+            'GET',
+            $this->getResourceUrl(),
+            [],
+            [],
+            [],
+            [],
+            [],
+            ['email' => 'test@example.com', 'password' => 'password']
+        );
 
         $this->assertEquals(400, $response->getStatusCode());
     } // function
@@ -212,11 +241,40 @@ class APIKeysControllerTest extends TestCase
      */
     public function testIndexErrorWrongUserFilter()
     {
-        $response = $this->callProtected('GET', $this->getResourceUrl(), $this->getUserFilter(false));
+        $response = $this->callProtected(
+            'GET',
+            $this->getResourceUrl(),
+            $this->getUserFilter(false),
+            [],
+            [],
+            [],
+            [],
+            ['email' => 'test@example.com', 'password' => 'password']
+        );
 
         $this->assertEquals(403, $response->getStatusCode());
     } // function
 
+    /**
+     * Checks if the correct status code is returned.
+     * @return void
+     */
+    public function testIndexSuccessCorrectUserFilter()
+    {
+        $response = $this->callProtected(
+            'GET',
+            $this->getResourceUrl(),
+            ['filter' => ['user_id' => 2]],
+            [],
+            [],
+            [],
+            [],
+            [],
+            ['email' => 'test@example.com', 'password' => 'password']
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+    } // function
 
     /**
      * Checks if the correct result is rendered with no rows.
@@ -264,6 +322,19 @@ class APIKeysControllerTest extends TestCase
     } // function
 
     /**
+     * Checks if the correct status code is returned.
+     * @return void
+     */
+    public function testIndexSuccessNoUserFilter()
+    {
+        $this->seed('APIKeySeeder');
+
+        $response = $this->callProtected('GET', $this->getResourceUrl());
+
+        $this->assertEquals(200, $response->getStatusCode());
+    } // function
+
+    /**
      * Checks if the correct result is rendered with rows.
      * @return void
      */
@@ -305,6 +376,28 @@ class APIKeysControllerTest extends TestCase
     } // function
 
     /**
+     * Checks if an access key is returned.
+     * @return void
+     */
+    public function testShowErrorWrongUser()
+    {
+        $this->seed('APIKeySeeder');
+
+        $response = $this->callProtected(
+            'GET',
+            $this->getResourceUrl() . '1',
+            [],
+            [],
+            [],
+            [],
+            [],
+            ['email' => 'test@example.com', 'password' => 'password']
+        );
+
+        $this->assertEquals(403, $response->getStatusCode());
+    } // function
+
+    /**
      * Checks if an 404 is returned, if no matching id is given.
      * @return void
      */
@@ -321,8 +414,31 @@ class APIKeysControllerTest extends TestCase
      */
     public function testShowSuccess()
     {
-        $this->seed('UserTableSeeder');
         $this->seed('APIKeySeeder');
+
+        $response = $this->callProtected('GET', $this->getResourceUrl() . '1');
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertInstanceOf('stdClass', $responseContent = json_decode($response->getContent()));
+        $this->assertObjectNotHasAttribute('deleted_at', $responseContent);
+        $this->assertObjectNotHasAttribute('hash', $responseContent);
+        $this->assertObjectHasAttribute('created_at', $responseContent);
+        $this->assertObjectHasAttribute('updated_at', $responseContent);
+        $this->assertSame(1, $responseContent->id);
+        $this->assertSame('desc 1', $responseContent->desc);
+    } // function
+
+    /**
+     * Checks if an access key is returned.
+     * @return void
+     */
+    public function testShowSuccessWrongButAdmin()
+    {
+        $this->seed('APIKeySeeder');
+
+        $key = APIKey::findOrNew(1);
+        $key->user_id = 2;
+        $key->save();
 
         $response = $this->callProtected('GET', $this->getResourceUrl() . '1');
 
@@ -377,7 +493,16 @@ class APIKeysControllerTest extends TestCase
      */
     public function testStoreErrorWrongUser()
     {
-        $response = $this->callProtected('POST', $this->getResourceUrl(), ['userId' => uniqid()]);
+        $response = $this->callProtected(
+            'POST',
+            $this->getResourceUrl(),
+            ['userId' => 2424243],
+            [],
+            [],
+            [],
+            [],
+            ['email' => 'test@example.com', 'password' => 'password']
+        );
 
         $this->assertEquals(403, $response->getStatusCode());
     } // function
@@ -446,6 +571,19 @@ class APIKeysControllerTest extends TestCase
         $response = $this->callProtected('POST', $this->getResourceUrl(), ['desc' => $desc, 'userId' => 1]);
 
         $this->assertEquals(409, $response->getStatusCode());
+    } // function
+
+    /**
+     * Checks the store call with a wrong user.
+     * @return void
+     */
+    public function testStoreSuccessWrongUserButAdmin()
+    {
+        $this->seed('UserTableSeeder');
+
+        $response = $this->callProtected('POST', $this->getResourceUrl(), ['userId' => 2]);
+
+        $this->assertEquals(200, $response->getStatusCode());
     } // function
 
     /**

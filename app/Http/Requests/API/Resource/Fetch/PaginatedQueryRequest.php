@@ -1,20 +1,20 @@
 <?php
 
-namespace CC\Http\Requests\API;
+namespace CC\Http\Requests\API\Resource\Fetch;
 
-use CC\Http\Requests\Request;
+use CC\Http\Requests\API\RequestAbstract;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Handles the paginated query request.
+ * Handles the pagination request of resources.
  * @author b3nl <code@b3nl.de>
  * @category Requests
  * @package CC\Http
- * @subpackage API
+ * @subpackage API\Resource\Fetch
  * @version $id$
  */
-class PaginatedQueryRequest extends Request
+class PaginatedQueryRequest extends RequestAbstract
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,12 +23,17 @@ class PaginatedQueryRequest extends Request
     public function authorize(Authenticatable $user)
     {
         $userId = $this->get('filter[user_id]', null, true);
+        $return = (bool) $user->is_admin;
 
-        if ($userId === null) {
-            abort(400);
+        if (!$return) {
+            if ($userId === null) {
+                abort(400);
+            } // if
+
+            $return = $userId === $user->id;
         } // if
 
-        return (int)$userId === $user->id;
+        return $return;
     } // function
 
     /**
@@ -85,6 +90,12 @@ class PaginatedQueryRequest extends Request
      */
     public function rules()
     {
-        return ['filter' => 'required|array', 'filter.user_id' => 'required|numeric', 'limit' => 'Integer', 'skip' => 'Integer', 'sorting' => 'array'];
+        return [
+            'filter' => 'array',
+            'filter.user_id' => 'numeric',
+            'limit' => 'Integer',
+            'skip' => 'Integer',
+            'sorting' => 'array'
+        ];
     } // function
 }

@@ -5,12 +5,11 @@ namespace CC\Http\Controllers\API;
 use CC\APIKey;
 use CC\Http\Controllers\Controller;
 use CC\Http\Controllers\API\HAL\PaginationTrait;
-use CC\Http\Requests\API\PaginatedQueryRequest;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Event;
+use CC\Http\Requests\API\Resource\Delete\APIKeyRequest as DeleteRequest;
+use CC\Http\Requests\API\Resource\Fetch\DetailsRequest as DetailsRequest;
+use CC\Http\Requests\API\Resource\Fetch\PaginatedQueryRequest as FetchRequest;
+use CC\Http\Requests\API\Resource\Update\Request as UpdateRequest;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 /**
@@ -27,11 +26,11 @@ class APIKeysController extends Controller
 
     /**
      * Returns a list of api keys.
-     * @param PaginatedQueryRequest $request
+     * @param FetchRequest $request The request incl. auth and validation.
      * @return array
      * @todo Add an admin mode, add a maximum limit to the config.
      */
-    public function index(PaginatedQueryRequest $request)
+    public function index(FetchRequest $request)
     {
         $key = new APIKey();
 
@@ -67,29 +66,23 @@ class APIKeysController extends Controller
 
     /**
      * Displays the given api_key.
+     * @param DetailsRequest $request The request incl. auth and validation.
      * @param APIKey $key
      * @return array
      */
-    public function show(APIKey $key)
+    public function show(DetailsRequest $request, APIKey $key)
     {
         return $key;
     } // function
 
     /**
      * Store a newly created resource in storage.
-     * @param Request $request The request.
+     * @param UpdateRequest $request The request incl. auth and validation.
      * @return Response
-     * @todo Add Admin mode.
      */
-    public function store(Authenticatable $user, Request $request)
+    public function store(UpdateRequest $request)
     {
-        if (!$userId = (int)$request->userId) {
-            abort(400);
-        } // if
-
-        if ($user->id !== $userId) { // TODO Add admin mode.
-            abort(403);
-        } // if
+        $userId = (int) $request->userId;
 
         $key = APIKey::firstOrNew([
             'desc' => $request->get('desc') ?: date('YmdHis'),
@@ -103,8 +96,6 @@ class APIKeysController extends Controller
         $key->hash = Hash::make($hashSource = Str::random(32), ['rounds' => 10]);
         $key->save();
 
-        Event::fire('test');
-
         $key->key = $hashSource;
 
         return $key;
@@ -112,17 +103,12 @@ class APIKeysController extends Controller
 
     /**
      * Remove the specified resource from storage.
-     * @param Authenticatable $user
+     * @param DeleteRequest $request Request incl. auth and validation.
      * @param APIKey $key
      * @return Response
-     * @todo Check user rights!
      */
-    public function destroy(Authenticatable $user, APIKey $key)
+    public function destroy(DeleteRequest $request, APIKey $key)
     {
-        if ($key->user_id !== $user->id) {
-            abort(403);
-        } // if
-
         $key->delete();
 
         return $key;

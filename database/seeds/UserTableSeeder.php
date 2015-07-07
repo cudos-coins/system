@@ -1,6 +1,7 @@
 <?php
-use Illuminate\Database\Seeder;
 use CC\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Seeder;
 
 /**
  * Seeds the user table.
@@ -23,16 +24,25 @@ class UserTableSeeder extends Seeder
         DB::table('users')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
+        Model::unguard();
+
         User::create([
             'alias' => 'admin',
             'balance' => 1000,
             'email' => 'foo@bar.com',
             'name' => 'Administrator',
+            'is_admin' => true,
             'password' => Hash::make('password')
         ]);
 
-        User::create(
-            ['alias' => 'test', 'balance' => 1000, 'email' => 'test@example.com', 'name' => 'Test User']
-        );
+        User::create([
+            'alias' => 'test',
+            'balance' => 1000,
+            'email' => 'test@example.com',
+            'name' => 'Test User',
+            'password' => Hash::make('password')
+        ]);
+
+        Model::reguard();
     }
 }

@@ -45,7 +45,7 @@ class APIKeysControllerTest extends BaseTestCase
         $return = [];
 
         if (!$correctData) {
-            $return = ['filter' => ['user_id' => uniqid()]];
+            $return = ['filter' => ['user_id' => 324234234]];
         } // if
 
         return $return;
