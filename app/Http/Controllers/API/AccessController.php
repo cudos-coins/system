@@ -2,15 +2,13 @@
 
 namespace CC\Http\Controllers\API;
 
+use CC\Http\Requests\API\LoginRequest as InsertRequest;
+use CC\Http\Controllers\Controller;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use CC\Http\Requests;
-use CC\Http\Controllers\Controller;
 
 /**
  * Handles the user login.
@@ -48,7 +46,7 @@ class AccessController extends Controller
                         'start' => $start = time(),
                         'end' => $start + $ttl + mt_rand(1, $ttl), // harden a known part of the hash.
                     ],
-                    'nonce' => Str::random(32),
+                       'nonce' => Str::random(32),
                 ])),
                 "ttl" => $ttl
             ]
@@ -58,20 +56,12 @@ class AccessController extends Controller
     /**
      * Login to the api.
      * @param Guard $auth
-     * @param Request $request
+     * @param InsertRequest $request
      * @return array
-     * @todo Check for Remote Addr and correct credentials, count, ip block. Refactor.
      */
-    public function store(Guard $auth, Request $request)
+    public function store(Guard $auth, InsertRequest $request)
     {
-        $login = $request->only(['email', 'password']);
-        $validator = Validator::make($login, ['email' => 'required|email', 'password' => 'required']);
-
-        if ($validator->fails()) {
-            abort(404);
-        } // if
-
-        if (!$auth->once($login)) {
+        if (!$auth->once($request->only(['email', 'password']))) {
             abort(403);
         } // if
 
