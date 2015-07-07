@@ -4,6 +4,14 @@ namespace CC\Http\Requests\API;
 use CC\Http\Requests\Request;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * Basic validating request for the api.
+ * @author b3nl <code@b3nl.de>
+ * @category Requests
+ * @package CC\Http
+ * @subpackage API
+ * @version $id$
+ */
 abstract class RequestAbstract extends Request
 {
     /**

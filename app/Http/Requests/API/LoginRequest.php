@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
  * @author b3nl <code@b3nl.de>
  * @category Requests
  * @package CC\Http
- * @subpackage API\Resource\Update
+ * @subpackage API
  * @version $id$
  */
 class LoginRequest extends RequestAbstract
