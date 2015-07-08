@@ -1,6 +1,8 @@
 <?php
 use Illuminate\Console\AppNamespaceDetectorTrait;
 
+use CC\User;
+
 class TestCase extends Illuminate\Foundation\Testing\TestCase
 {
     use AppNamespaceDetectorTrait;
@@ -72,7 +74,9 @@ class TestCase extends Illuminate\Foundation\Testing\TestCase
                 $login = ['email' => 'foo@bar.com', 'password' => 'password'];
             } // if
 
-            $this->seed('UserTableSeeder');
+            if (!User::where('email', $login['email'])->exists()) {
+                $this->seed('UserTableSeeder');
+            } // if
 
             $response = $this->call('POST', '/api/access_token', $login);
             $responseContent = $response->getOriginalContent();

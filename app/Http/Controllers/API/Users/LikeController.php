@@ -3,7 +3,8 @@ namespace CC\Http\Controllers\API\Users;
 
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
-use CC\Http\Requests;
+use CC\Http\Requests\API\Resource\Delete\RemoveLikeRequest;
+use CC\Http\Requests\API\Resource\Insert\LikeRequest;
 use CC\Http\Controllers\Controller;
 use CC\User;
 use CC\Like;
@@ -24,22 +25,12 @@ class LikeController extends Controller
      * @return Response
      * @todo A user object can not be injected with the authenticated user. So get the auth user manually.
      */
-    public function store(User $target)
+    public function store(LikeRequest $request, User $target)
     {
-        if (!Auth::check()) {
-            abort(401);
-        } // if
-
-        $user = Auth::user();
-
-        if ($target->id === $user->id) {
-            abort(403);
-        } // if
-
         $like = Like::firstOrNew([
             'target_id' => $target->id,
             'target_type' => 'users',
-            'user_id' => $user->id,
+            'user_id' => (int) $request->get('from', 0) ?: Auth::id(),
         ]);
 
         if ($like->id) {
@@ -57,28 +48,20 @@ class LikeController extends Controller
      * Remove the specified resource from storage.
      * @param User The targeted user.
      * @return Response
-     * @todo Add from parameter.
      */
-    public function destroy(User $target)
+    public function destroy(RemoveLikeRequest $request, User $target)
     {
-        if (!Auth::check()) {
-            abort(401);
-        } // if
-
-        $user = Auth::user();
         $like = Like::firstOrNew([
             'target_id' => $target->id,
             'target_type' => 'users',
-            'user_id' => $user->id,
+            'user_id' => (int) $request->get('from', 0) ?: Auth::id(),
         ]);
 
         if (!$like->id) {
-            abort(403);
+            abort(404);
         } // if
 
-        if (!$like->delete()) {
-            aboert(500);
-        } // if
+        $like->delete();
 
         return $like;
     } // function
